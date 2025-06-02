@@ -351,7 +351,18 @@ impl MulticastSocket {
         })
     }
 
+    /// Send a message to the multicast address on the specified interface.
     pub fn send(&self, buf: &[u8], interface: &Interface) -> io::Result<usize> {
+        self.send_to_port(buf, interface, self.multicast_address.port())
+    }
+
+    /// Send a message to the custom IPv4 address.
+    pub fn send_to(&self, buf: &[u8], addr: SocketAddrV4) -> io::Result<usize> {
+        self.socket.send_to(buf, &addr.into())
+    }
+    
+    /// Send a message to a specific port on the multicast address.
+    pub fn send_to_port(&self, buf: &[u8], interface: &Interface, port: u16) -> io::Result<usize> {
         let pkt_info = match interface {
             Interface::Default => None,
             Interface::Ip(address) => Some(IN_PKTINFO {
@@ -403,7 +414,11 @@ impl MulticastSocket {
             }
         };
 
-        let destination = socket2::SockAddr::from(self.multicast_address);
+        // Set custom port
+        let mut dst_sockaddr = self.multicast_address;
+        dst_sockaddr.set_port(port);
+        
+        let mut destination = socket2::SockAddr::from(dst_sockaddr);
         let destination_address = destination.as_ptr();
         let mut wsa_msg = WSAMSG {
             name: destination_address as *mut _,
@@ -430,10 +445,6 @@ impl MulticastSocket {
         }
 
         Ok(sent_bytes as _)
-    }
-
-    pub fn send_to(&self, buf: &[u8], addr: SocketAddrV4) -> io::Result<usize> {
-        self.socket.send_to(buf, &addr.into())
     }
 
     pub fn broadcast(&self, buf: &[u8]) -> io::Result<()> {

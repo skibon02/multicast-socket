@@ -138,6 +138,7 @@ impl MulticastSocket {
         })
     }
 
+    /// Send a message to the multicast address on the specified interface.
     pub fn send(&self, buf: &[u8], interface: &Interface) -> io::Result<usize> {
         let mut pkt_info: libc::in_pktinfo = unsafe { mem::zeroed() };
 
@@ -158,7 +159,8 @@ impl MulticastSocket {
         )
         .map_err(nix_to_io_error)
     }
-    
+
+    /// Send a message to the custom IPv4 address.
     pub fn send_to(&self, buf: &[u8], addr: SocketAddrV4) -> io::Result<usize> {
         self.socket.send_to(buf, &addr.into())
     }
@@ -168,5 +170,30 @@ impl MulticastSocket {
             self.send(buf, &Interface::Ip(*interface))?;
         }
         Ok(())
+    }
+    
+    /// Send a message to a specific port on the multicast address.
+    pub fn send_to_port(&self, buf: &[u8], interface: &Interface, port: u16) -> io::Result<usize> {
+        let mut pkt_info: libc::in_pktinfo = unsafe { mem::zeroed() };
+
+        match interface {
+            Interface::Default => {}
+            Interface::Ip(address) => pkt_info.ipi_spec_dst = sock::Ipv4Addr::from_std(address).0,
+            Interface::Index(index) => pkt_info.ipi_ifindex = *index as _,
+        };
+
+        let mut dst_sockaddr = self.multicast_address;
+        dst_sockaddr.set_port(port);
+        
+        let destination = sock::InetAddr::from_std(&dst_sockaddr.into());
+
+        sock::sendmsg(
+            self.socket.as_raw_fd(),
+            &[IoVec::from_slice(&buf)],
+            &[sock::ControlMessage::Ipv4PacketInfo(&pkt_info)],
+            sock::MsgFlags::empty(),
+            Some(&sock::SockAddr::new_inet(destination)),
+        )
+            .map_err(nix_to_io_error)
     }
 }
