@@ -23,6 +23,7 @@ pub struct MulticastOptions {
     /// Usually this will be Ipv4Addr::UNSPECIFIED, in order to listen for packets on all
     /// interfaces.
     pub bind_address: Ipv4Addr,
+    pub reuse_addr: bool,
 }
 
 impl Default for MulticastOptions {
@@ -32,6 +33,7 @@ impl Default for MulticastOptions {
             loopback: true,
             buffer_size: 512,
             bind_address: Ipv4Addr::UNSPECIFIED,
+            reuse_addr: true,
         }
     }
 }
