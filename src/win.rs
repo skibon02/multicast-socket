@@ -429,6 +429,10 @@ impl MulticastSocket {
         Ok(sent_bytes as _)
     }
 
+    pub fn send_to(&self, buf: &[u8], addr: SocketAddrV4) -> io::Result<usize> {
+        self.socket.send_to(buf, &addr.into())
+    }
+
     pub fn broadcast(&self, buf: &[u8]) -> io::Result<()> {
         for interface in self.interfaces.values() {
             self.send(buf, &Interface::Ip(*interface))?;
