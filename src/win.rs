@@ -146,7 +146,6 @@ fn create_on_interfaces(
     socket.set_multicast_loop_v4(options.loopback)?;
     if options.reuse_addr {
         socket.set_reuse_address(true)?;
-        socket.set_reuse_port(true)?;
     }
 
     // enable fetching interface information and locate the extension function
